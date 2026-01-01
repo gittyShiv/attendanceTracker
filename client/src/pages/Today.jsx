@@ -1,0 +1,96 @@
+import { useEffect, useState } from 'react';
+import NavBar from '../components/NavBar';
+import api from '../api/axios';
+import TodayCard from '../components/TodayCard';
+import Modal from '../components/Modal';
+import { useAuthGuard } from '../hooks/useAuthGuard';
+import { motion } from 'framer-motion';
+
+export default function Today() {
+  useAuthGuard();
+  const [today, setToday] = useState({ day: '', date: null, schedule: [], extras: [], all: [] });
+  const [attendance, setAttendance] = useState([]);
+  const [subjectStats, setSubjectStats] = useState([]);
+  const [noteModal, setNoteModal] = useState({ open: false, subjectCode: null });
+
+  const fetchAll = async () => {
+    const [t, att, stats] = await Promise.all([
+      api.get('/schedule/today'),
+      api.get('/attendance'),
+      api.get('/analytics/subject')
+    ]);
+    const merged = [...(t.data.schedule || []), ...(t.data.extras || [])];
+    setToday({ ...t.data, all: merged });
+    setAttendance(att.data);
+    setSubjectStats(stats.data);
+  };
+
+  useEffect(() => {
+    fetchAll();
+  }, []);
+
+  const mark = async (subjectCode, status, askNote = false) => {
+    if (askNote) {
+      setNoteModal({ open: true, subjectCode });
+      return;
+    }
+    await api.post('/attendance', { subjectCode, status });
+    await fetchAll();
+  };
+
+  const submitNote = async (note) => {
+    await api.post('/attendance', { subjectCode: noteModal.subjectCode, status: 'cancelled', note });
+    setNoteModal({ open: false, subjectCode: null });
+    await fetchAll();
+  };
+
+  const scheduleWithPct = (today.all || []).map((c) => {
+    const s = subjectStats.find((p) => p.subjectCode === c.subjectCode);
+    return { ...c, percentage: s?.percentage ?? 100 };
+  });
+
+  return (
+    <div className="layout">
+      <motion.h2 initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ duration: 0.3 }}>
+        Today · {today.day}
+      </motion.h2>
+      <div className="grid">
+        {scheduleWithPct.map((item, idx) => (
+          <motion.div key={`${item._id || item.subjectCode}-${item.startTime}-${idx}`} initial={{ y: 20, opacity: 0 }} animate={{ y: 0, opacity: 1 }} transition={{ delay: idx * 0.05 }}>
+            <TodayCard item={item} attendance={attendance} onMark={mark} />
+          </motion.div>
+        ))}
+        {scheduleWithPct.length === 0 && <div className="card glow-card">No classes today 🎉</div>}
+      </div>
+      <NavBar />
+      <Modal
+        open={noteModal.open}
+        onClose={() => setNoteModal({ open: false, subjectCode: null })}
+        title="Add note for cancelled class"
+      >
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            const note = e.target.note.value;
+            submitNote(note);
+          }}
+        >
+          <textarea
+            name="note"
+            rows={3}
+            style={{ width: '100%', background: '#0b1220', color: 'var(--text)', padding: 10, borderRadius: 10, border: '1px solid rgba(255,255,255,0.06)' }}
+            placeholder="Reason (optional)"
+          />
+          <div style={{ marginTop: 12, display: 'flex', justifyContent: 'flex-end', gap: 8 }}>
+            <button type="button" onClick={() => setNoteModal({ open: false, subjectCode: null })}>
+              Cancel
+            </button>
+            <button type="submit" style={{ background: 'var(--accent)', color: '#0b1220', fontWeight: 700 }}>
+              Save
+            </button>
+          </div>
+        </form>
+      </Modal>
+    </div>
+  );
+}
