@@ -24,9 +24,18 @@ export default function Login() {
         animate={{ y: 0, opacity: 1, scale: 1 }}
         transition={{ type: 'spring', stiffness: 220, damping: 20 }}
       >
-        <h1 style={{ marginBottom: 12 }}>Student Attendance</h1>
+        <h1 style={{ display: 'inline-flex', alignItems: 'center', gap: 12, justifyContent: 'center' }}>
+          <img
+            src="/icons/attendance.png"   // adjust path if different
+            alt="Attendance"
+            width={55}
+            height={55}
+            style={{ display: 'block' }}
+          />
+          <span>Student Attendance Tracker</span>
+        </h1>
         <p style={{ color: 'var(--muted)', marginBottom: 24 }}>
-          Dark, modern tracker with Google SSO only. Stay above 75%.
+          Stay above 75%.
         </p>
         <motion.button
           onClick={login}
