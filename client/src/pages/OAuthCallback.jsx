@@ -4,8 +4,10 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 export default function OAuthCallback() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
+
   useEffect(() => {
     const token = params.get('token');
+
     if (token) {
       localStorage.setItem('jwt', token);
       navigate('/today', { replace: true });
@@ -13,5 +15,6 @@ export default function OAuthCallback() {
       navigate('/', { replace: true });
     }
   }, [params, navigate]);
+
   return <div className="layout">Signing you in…</div>;
 }
