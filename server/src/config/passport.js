@@ -1,3 +1,4 @@
+const connectDB = require("../db");
 const passport = require("passport");
 const GoogleStrategy = require("passport-google-oauth20").Strategy;
 const User = require("../models/User");
@@ -17,10 +18,12 @@ passport.use(
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
       callbackURL: process.env.GOOGLE_CALLBACK_URL
     },
-    async (_accessToken, _refreshToken, profile, done) => {
+      async (_accessToken, _refreshToken, profile, done) => {
       try {
-        // Google guarantees at least one email
-        const email = profile.emails?.[0]?.value;
+        // FORCE DB CONNECTION HERE
+        await connectDB();
+
+        const email = profile.emails?.[0]?.value
 
         if (!email) {
           return done(new Error("Google account has no email"), null);
