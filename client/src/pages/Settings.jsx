@@ -1,34 +1,48 @@
 import { useContext, useState } from 'react';
+import dayjs from 'dayjs';
 import NavBar from '../components/NavBar';
 import api from '../api/axios';
 import { AuthContext } from '../context/AuthContext';
 import { useAuthGuard } from '../hooks/useAuthGuard';
-import dayjs from 'dayjs';
+import { useToast } from '../hooks/useToast';
+import Toast from '../components/Toast';
 
 export default function Settings() {
   useAuthGuard();
   const { user, logout } = useContext(AuthContext);
   const [festLoading, setFestLoading] = useState(false);
+  const [extraLoading, setExtraLoading] = useState(false);
   const [extraForm, setExtraForm] = useState({
     subjectCode: '',
     date: dayjs().format('YYYY-MM-DD')
   });
-  const [extraLoading, setExtraLoading] = useState(false);
+
+  const { toast, showToast, closeToast } = useToast();
 
   const festMode = async () => {
-    setFestLoading(true);
-    await api.post('/attendance/fest-mode', {});
-    setFestLoading(false);
-    alert('Fest mode applied for today (all classes cancelled).');
+    try {
+      setFestLoading(true);
+      await api.post('/attendance/fest-mode', {});
+      showToast('Holiday mode applied for today (all classes cancelled).', 'success');
+    } catch (err) {
+      showToast(err?.response?.data?.message || 'Failed to apply Holiday mode', 'danger');
+    } finally {
+      setFestLoading(false);
+    }
   };
 
   const exportCsv = async () => {
-    const res = await api.get('/attendance/export', { responseType: 'blob' });
-    const url = window.URL.createObjectURL(new Blob([res.data]));
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = 'attendance.csv';
-    a.click();
+    try {
+      const res = await api.get('/attendance/export', { responseType: 'blob' });
+      const url = window.URL.createObjectURL(new Blob([res.data]));
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'attendance.csv';
+      a.click();
+      showToast('Exported CSV successfully.', 'success');
+    } catch (err) {
+      showToast(err?.response?.data?.message || 'Failed to export CSV', 'danger');
+    }
   };
 
   const addExtra = async (e) => {
@@ -37,16 +51,17 @@ export default function Settings() {
     try {
       await api.post('/schedule/extra', {
         subjectCode: extraForm.subjectCode,
-        subjectName: extraForm.subjectCode,       // reuse code as name
+        subjectName: extraForm.subjectCode, // reuse code as name
         date: extraForm.date,
-        startTime: '15:00',                       // default
-        endTime: '16:00',                         // default
+        startTime: '15:00', // default
+        endTime: '16:00',   // default
         location: 'TBD',
         type: 'Extra'
       });
-      alert('Extra class added for ' + extraForm.date);
+      showToast(`Extra class added for ${extraForm.date}`, 'info');
+      setExtraForm((f) => ({ ...f, subjectCode: '' }));
     } catch (err) {
-      alert('Failed to add extra class');
+      showToast(err?.response?.data?.message || 'Failed to add extra class', 'danger');
     } finally {
       setExtraLoading(false);
     }
@@ -55,6 +70,7 @@ export default function Settings() {
   return (
     <div className="layout">
       <h2>Settings</h2>
+
       <div className="card" style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
         <img src={user?.avatar} alt="" width={48} height={48} style={{ borderRadius: '50%' }} />
         <div>
@@ -64,13 +80,25 @@ export default function Settings() {
       </div>
 
       <div className="grid" style={{ marginTop: 12 }}>
-        <button onClick={festMode} style={{ background: 'var(--accent)', color: '#0b1220', padding: 14 }}>
+        <button
+          onClick={festMode}
+          style={{ background: 'var(--accent)', color: '#0b1220', padding: 14 }}
+          disabled={festLoading}
+        >
           {festLoading ? 'Applying...' : 'Holiday (Cancel all today)'}
         </button>
-        <button onClick={exportCsv} style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid #1f2937', padding: 14 }}>
+
+        <button
+          onClick={exportCsv}
+          style={{ background: 'var(--card)', color: 'var(--text)', border: '1px solid #1f2937', padding: 14 }}
+        >
           Export CSV
         </button>
-        <button onClick={logout} style={{ background: 'var(--danger)', color: '#0b1220', padding: 14 }}>
+
+        <button
+          onClick={logout}
+          style={{ background: 'var(--danger)', color: '#0b1220', padding: 14 }}
+        >
           Logout
         </button>
       </div>
@@ -94,12 +122,17 @@ export default function Settings() {
             value={extraForm.date}
             onChange={(e) => setExtraForm({ ...extraForm, date: e.target.value })}
           />
-          <button type="submit" style={{ background: 'var(--accent)', color: '#0b1220', fontWeight: 700 }}>
+          <button
+            type="submit"
+            style={{ background: 'var(--accent)', color: '#0b1220', fontWeight: 700 }}
+            disabled={extraLoading}
+          >
             {extraLoading ? 'Adding…' : 'Add Extra'}
           </button>
         </form>
       </div>
 
+      <Toast open={toast.open} message={toast.message} tone={toast.tone} onClose={closeToast} />
       <NavBar />
     </div>
   );
