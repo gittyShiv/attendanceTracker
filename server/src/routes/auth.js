@@ -36,15 +36,15 @@ router.get(
       try {
         await seedUserSchedule(req.user._id);
       } catch (err) {
-        // Non-fatal: app should still log in
+        // Non-fatal: login should still succeed
         console.error("⚠️ Schedule seed failed:", err);
       }
 
       // Issue JWT (stateless)
       const token = signToken(req.user);
 
-      // Redirect back to frontend with token
-      const redirectUrl = `${process.env.FRONTEND_URL}/auth/success?token=${token}`;
+      // 🔑 IMPORTANT: redirect to EXISTING frontend route
+      const redirectUrl = `${process.env.FRONTEND_URL}/oauth-callback?token=${token}`;
       return res.redirect(redirectUrl);
     } catch (err) {
       console.error("❌ OAuth callback error:", err);
