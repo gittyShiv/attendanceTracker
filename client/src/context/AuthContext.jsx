@@ -19,12 +19,24 @@ export const AuthProvider = ({ children }) => {
       setLoading(false);
       return;
     }
+
     api
       .get('/auth/me')
       .then((res) => setUser(res.data))
-      .catch(() => logout())
+      .catch((err) => {
+        if (err.response?.status === 401) {
+          logout(); // only now
+        } else {
+          // backend cold start, network glitch, etc.
+          console.warn('Auth check failed, retry later');
+        }
+      })
       .finally(() => setLoading(false));
   }, []);
 
-  return <AuthContext.Provider value={{ user, setUser, logout, loading }}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={{ user, setUser, logout, loading }}>
+      {children}
+    </AuthContext.Provider>
+  );
 };

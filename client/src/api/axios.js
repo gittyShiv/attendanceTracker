@@ -16,7 +16,7 @@ api.interceptors.response.use(
   (err) => {
     if (err.response?.status === 401) {
       localStorage.removeItem('jwt');
-      window.location.href = '/';
+      // NO redirect here
     }
     return Promise.reject(err);
   }
