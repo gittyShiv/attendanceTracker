@@ -1,25 +1,29 @@
-import axios from 'axios';
+import api from "./axios";
 
-const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL,
-  withCredentials: false
-});
+const CACHE_KEY = "subjects_cache";
+const CACHE_TTL = 10 * 60 * 1000; // 10 minutes
 
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('jwt');
-  if (token) config.headers.Authorization = `Bearer ${token}`;
-  return config;
-});
-
-api.interceptors.response.use(
-  (res) => res,
-  (err) => {
-    if (err.response?.status === 401) {
-      localStorage.removeItem('jwt');
-      // NO redirect here
+export async function getSubjects() {
+  const cached = localStorage.getItem(CACHE_KEY);
+  if (cached) {
+    const parsed = JSON.parse(cached);
+    if (Date.now() < parsed.expiresAt) {
+      return parsed.data;
     }
-    return Promise.reject(err);
   }
-);
 
-export default api;
+  const res = await api.get("/schedule");
+  localStorage.setItem(
+    CACHE_KEY,
+    JSON.stringify({
+      data: res.data,
+      expiresAt: Date.now() + CACHE_TTL
+    })
+  );
+
+  return res.data;
+}
+
+export function clearSubjectsCache() {
+  localStorage.removeItem(CACHE_KEY);
+}

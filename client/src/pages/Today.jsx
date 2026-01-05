@@ -5,6 +5,7 @@ import TodayCard from '../components/TodayCard';
 import Modal from '../components/Modal';
 import { useAuthGuard } from '../hooks/useAuthGuard';
 import { motion } from 'framer-motion';
+import { getCached, setCached } from '../utils/pageCache';
 
 export default function Today() {
   useAuthGuard();
@@ -13,21 +14,46 @@ export default function Today() {
   const [subjectStats, setSubjectStats] = useState([]);
   const [noteModal, setNoteModal] = useState({ open: false, subjectCode: null });
 
-  const fetchAll = async () => {
-    const [t, att, stats] = await Promise.all([
-      api.get('/schedule/today'),
-      api.get('/attendance'),
-      api.get('/analytics/subject')
-    ]);
-    const merged = [...(t.data.schedule || []), ...(t.data.extras || [])];
-    setToday({ ...t.data, all: merged });
-    setAttendance(att.data);
-    setSubjectStats(stats.data);
+const fetchAll = async (background = false) => {
+  const cacheKey = 'today_page';
+
+  if (!background) {
+    const cached = getCached(cacheKey);
+    if (cached) {
+      setToday(cached.today);
+      setAttendance(cached.attendance);
+      setSubjectStats(cached.subjectStats);
+      return;
+    }
+  }
+
+  const [t, att, stats] = await Promise.all([
+    api.get('/schedule/today'),
+    api.get('/attendance'),
+    api.get('/analytics/subject')
+  ]);
+
+  const merged = [...(t.data.schedule || []), ...(t.data.extras || [])];
+
+  const payload = {
+    today: { ...t.data, all: merged },
+    attendance: att.data,
+    subjectStats: stats.data
   };
 
+  setToday(payload.today);
+  setAttendance(payload.attendance);
+  setSubjectStats(payload.subjectStats);
+
+  setCached(cacheKey, payload);
+};
+
+
   useEffect(() => {
-    fetchAll();
+    fetchAll();          // instant if cached
+    fetchAll(true);      // refresh in background
   }, []);
+
 
   const mark = async (subjectCode, status, askNote = false) => {
     if (askNote) {
@@ -35,13 +61,13 @@ export default function Today() {
       return;
     }
     await api.post('/attendance', { subjectCode, status });
-    await fetchAll();
+    await fetchAll(true);
   };
 
   const submitNote = async (note) => {
     await api.post('/attendance', { subjectCode: noteModal.subjectCode, status: 'cancelled', note });
     setNoteModal({ open: false, subjectCode: null });
-    await fetchAll();
+    await fetchAll(true);
   };
 
   const scheduleWithPct = (today.all || []).map((c) => {

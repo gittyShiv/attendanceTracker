@@ -3,14 +3,25 @@ const auth = require('../middleware/auth');
 const Schedule = require('../models/Schedule');
 const ExtraSession = require('../models/ExtraSession');
 const dayjs = require('dayjs');
+const { getCache, setCache } = require("../utils/cache");
 
 const router = express.Router();
 
 router.use(auth);
 
 // Get full recurring schedule
-router.get('/', async (req, res) => {
-  const schedule = await Schedule.find({ userId: req.user._id }).sort({ day: 1, startTime: 1 });
+router.get("/", authMiddleware, async (req, res) => {
+  const cacheKey = `schedule:${req.user.id}`;
+
+  const cached = getCache(cacheKey);
+  if (cached) {
+    return res.json(cached);
+  }
+
+  const schedule = await Schedule.find({ user: req.user.id });
+
+  // Cache for 10 minutes
+  setCache(cacheKey, schedule, 10 * 60 * 1000);
   res.json(schedule);
 });
 

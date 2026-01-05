@@ -4,6 +4,7 @@ import NavBar from '../components/NavBar';
 import api from '../api/axios';
 import Modal from '../components/Modal';
 import { useAuthGuard } from '../hooks/useAuthGuard';
+import { getCached, setCached } from '../utils/pageCache';
 
 const days = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday'];
 
@@ -13,15 +14,40 @@ export default function Timetable() {
   const [attendance, setAttendance] = useState([]);
   const [selected, setSelected] = useState(null);
 
-  const refresh = async () => {
-    const [s, a] = await Promise.all([api.get('/schedule'), api.get('/attendance')]);
-    setSchedule(s.data);
-    setAttendance(a.data);
+const refresh = async (background = false) => {
+  const cacheKey = 'timetable_page';
+
+  if (!background) {
+    const cached = getCached(cacheKey);
+    if (cached) {
+      setSchedule(cached.schedule);
+      setAttendance(cached.attendance);
+      return;
+    }
+  }
+
+  const [s, a] = await Promise.all([
+    api.get('/schedule'),
+    api.get('/attendance')
+  ]);
+
+  const payload = {
+    schedule: s.data,
+    attendance: a.data
   };
 
+  setSchedule(payload.schedule);
+  setAttendance(payload.attendance);
+
+  setCached(cacheKey, payload);
+};
+
+
   useEffect(() => {
-    refresh();
+    refresh();        // instant if cached
+    refresh(true);    // silent background update
   }, []);
+
 
   const statusFor = (subjectCode, date) => {
     const rec = attendance.find((r) => dayjs(r.date).isSame(date, 'day') && r.subjectCode === subjectCode);
@@ -37,11 +63,12 @@ export default function Timetable() {
     });
   }, [schedule, weekStart]);
 
-  const mark = async (subjectCode, date, status) => {
-    await api.post('/attendance', { subjectCode, status, date });
-    setSelected(null);
-    await refresh();
-  };
+const mark = async (subjectCode, date, status) => {
+  await api.post('/attendance', { subjectCode, status, date });
+  setSelected(null);
+  await refresh(true); // background refresh
+};
+
 
   const colorFor = (status) => {
     if (status === 'present') return 'var(--success)';

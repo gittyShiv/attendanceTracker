@@ -3,14 +3,34 @@ import NavBar from '../components/NavBar';
 import api from '../api/axios';
 import ProgressRing from '../components/ProgressRing';
 import { useAuthGuard } from '../hooks/useAuthGuard';
+import { getCached, setCached } from '../utils/pageCache';
+
 
 export default function Analytics() {
   useAuthGuard();
   const [subjects, setSubjects] = useState([]);
 
-  useEffect(() => {
-    api.get('/analytics/subject').then((res) => setSubjects(res.data));
-  }, []);
+  const fetchAnalytics = async (background = false) => {
+  const cacheKey = 'analytics_page';
+
+  if (!background) {
+    const cached = getCached(cacheKey);
+    if (cached) {
+      setSubjects(cached);
+      return;
+    }
+  }
+
+  const res = await api.get('/analytics/subject');
+  setSubjects(res.data);
+  setCached(cacheKey, res.data);
+};
+
+useEffect(() => {
+  fetchAnalytics();       // instant if cached
+  fetchAnalytics(true);   // silent refresh
+}, []);
+
 
   const color = (p) => (p < 65 ? '#ff5f5f' : p < 75 ? '#ffb347' : '#22ff99');
   const statusText = (p, classesNeeded) =>

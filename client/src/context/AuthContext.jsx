@@ -1,5 +1,6 @@
 import React, { createContext, useEffect, useState } from 'react';
 import api from '../api/axios';
+import { clearSubjectsCache } from "../api/axios";
 
 export const AuthContext = createContext();
 
@@ -7,11 +8,12 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  const logout = () => {
-    localStorage.removeItem('jwt');
-    setUser(null);
-    window.location.href = '/';
-  };
+const logout = () => {
+  localStorage.removeItem("jwt");
+  clearSubjectsCache();
+  setUser(null);
+  navigate("/", { replace: true });
+};
 
   useEffect(() => {
     const token = localStorage.getItem('jwt');

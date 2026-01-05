@@ -59,13 +59,20 @@ router.get(
  * ============================
  */
 router.get("/me", authMiddleware, (req, res) => {
-  const { _id, name, email, avatar } = req.user;
-  res.json({
-    id: _id,
-    name,
-    email,
-    avatar
-  });
+  const cacheKey = `me:${req.user.id}`;
+
+  const cached = getCache(cacheKey);
+  if (cached) return res.json(cached);
+
+  const data = {
+    id: req.user._id,
+    name: req.user.name,
+    email: req.user.email,
+    avatar: req.user.avatar
+  };
+
+  setCache(cacheKey, data, 5 * 60 * 1000); // 5 min
+  res.json(data);
 });
 
 /**

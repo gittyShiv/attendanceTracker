@@ -2,14 +2,34 @@ import { useEffect, useState } from 'react';
 import NavBar from '../components/NavBar';
 import api from '../api/axios';
 import { useAuthGuard } from '../hooks/useAuthGuard';
+import { getCached, setCached } from '../utils/pageCache';
+
 
 export default function Summary() {
   useAuthGuard();
   const [summary, setSummary] = useState(null);
 
-  useEffect(() => {
-    api.get('/analytics/summary').then((res) => setSummary(res.data));
-  }, []);
+const fetchSummary = async (background = false) => {
+  const cacheKey = 'summary_page';
+
+  if (!background) {
+    const cached = getCached(cacheKey);
+    if (cached) {
+      setSummary(cached);
+      return;
+    }
+  }
+
+  const res = await api.get('/analytics/summary');
+  setSummary(res.data);
+  setCached(cacheKey, res.data);
+};
+
+useEffect(() => {
+  fetchSummary();        // instant if cached
+  fetchSummary(true);    // silent refresh
+}, []);
+
 
   if (!summary) return <div className="layout">Loading...</div>;
 
