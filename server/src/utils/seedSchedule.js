@@ -2,7 +2,7 @@ const Schedule = require('../models/Schedule');
 
 const seedEntries = [
   // Monday
-  { subjectCode: 'MCR-303', subjectName: 'MCR-303 (VKS/RKC)', day: 'Monday', startTime: '10:00', endTime: '10:55', location: 'LT-1', type: 'Lecture' },
+  // { subjectCode: 'MCR-303', subjectName: 'MCR-303 (VKS/RKC)', day: 'Monday', startTime: '10:00', endTime: '10:55', location: 'LT-1', type: 'Lecture' },
   { subjectCode: 'OE-SLOT', subjectName: 'Open Elective', day: 'Monday', startTime: '14:30', endTime: '15:25', location: 'Slot', type: 'OE' },
   { subjectCode: 'MCR-303-LAB', subjectName: 'MCR-303 (VKS) Lab', day: 'Monday', startTime: '15:30', endTime: '16:25', location: 'LAB-1', type: 'Lab' },
 
@@ -23,11 +23,12 @@ const seedEntries = [
   // Thursday
   { subjectCode: 'MCR-303', subjectName: 'MCR-303 (VKS/RKC)', day: 'Thursday', startTime: '10:00', endTime: '10:55', location: 'LT-1', type: 'Lecture' },
   { subjectCode: 'MCR-402', subjectName: 'MCR-402 (SP)', day: 'Thursday', startTime: '11:00', endTime: '11:55', location: 'NC', type: 'Lecture' },
-  { subjectCode: 'OE-SLOT', subjectName: 'Open Elective', day: 'Thursday', startTime: '15:30', endTime: '16:25', location: 'Slot', type: 'OE' },
+  // { subjectCode: 'OE-SLOT', subjectName: 'Open Elective', day: 'Thursday', startTime: '15:30', endTime: '16:25', location: 'Slot', type: 'OE' },
 
   // Friday
   { subjectCode: 'MCR-312', subjectName: 'MCR-312 (PS)', day: 'Friday', startTime: '10:00', endTime: '10:55', location: 'LT-2', type: 'Lecture' },
-  { subjectCode: 'OE-SLOT', subjectName: 'Open Elective', day: 'Friday', startTime: '14:30', endTime: '15:25', location: 'Slot', type: 'OE' },
+  // { subjectCode: 'MCR-303', subjectName: 'MCR-303 (VKS/RKC)', day: 'Friday', startTime: '11:00', endTime: '11:55', location: 'LT-1', type: 'Lecture' },
+  // { subjectCode: 'OE-SLOT', subjectName: 'Open Elective', day: 'Friday', startTime: '14:30', endTime: '15:25', location: 'Slot', type: 'OE' },
   { subjectCode: 'MCR-392', subjectName: 'MCR-392 UG Project', day: 'Friday', startTime: '15:30', endTime: '16:25', location: 'UG Project Lab', type: 'Project' }
 ];
 
