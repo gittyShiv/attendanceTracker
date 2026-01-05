@@ -1,6 +1,6 @@
 import React, { createContext, useEffect, useState } from 'react';
 import api from '../api/axios';
-import { clearSubjectsCache } from "../api/axios";
+import { clearSubjectsCache } from "../api/subjects";
 
 export const AuthContext = createContext();
 
