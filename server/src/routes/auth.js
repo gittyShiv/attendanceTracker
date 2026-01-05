@@ -3,6 +3,8 @@ const passport = require("passport");
 const { signToken } = require("../utils/jwt");
 const authMiddleware = require("../middleware/auth");
 const { seedUserSchedule } = require("../utils/seedSchedule");
+const { getCache, setCache } = require("../utils/cache");
+
 
 const router = express.Router();
 
