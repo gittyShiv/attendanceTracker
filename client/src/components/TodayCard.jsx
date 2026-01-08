@@ -1,17 +1,13 @@
-import dayjs from 'dayjs';
-import { motion } from 'framer-motion';
+import { motion } from "framer-motion";
 
 export default function TodayCard({ item, attendance, onMark }) {
-  const record = attendance; // already resolved correctly in Today.jsx
-  const status = record?.status;
+  const status = attendance?.status;
   const pct = item.percentage ?? 100;
-  const pctColor = pct < 65 ? 'var(--danger)' : pct < 75 ? 'var(--warn)' : 'var(--success)';
-  const isExtra = item.type === 'Extra';
+  const pctColor = pct < 65 ? "var(--danger)" : pct < 75 ? "var(--warn)" : "var(--success)";
 
-  const buttonStyle = (bg, shadow) => ({
+  const buttonStyle = (bg) => ({
     background: bg,
-    color: '#0b1220',
-    boxShadow: status ? 'none' : shadow,
+    color: "#0b1220",
     opacity: status ? 0.6 : 1
   });
 
@@ -19,50 +15,42 @@ export default function TodayCard({ item, attendance, onMark }) {
     <motion.div
       className="card glow-card"
       whileHover={{ y: -4, scale: 1.01 }}
-      transition={{ type: 'spring', stiffness: 300, damping: 20 }}
-      style={{ display: 'flex', gap: 12, alignItems: 'center', justifyContent: 'space-between' }}
+      style={{ display: "flex", justifyContent: "space-between", gap: 12 }}
     >
       <div>
         <div style={{ fontWeight: 700 }}>{item.subjectCode}</div>
-        <div style={{ color: 'var(--muted)', fontSize: 13 }}>
-          {item.startTime} – {item.endTime} · {item.location}
+        <div style={{ fontSize: 12, color: "var(--muted)" }}>
+          {item.startTime} – {item.endTime}
         </div>
       </div>
 
-      <div style={{ textAlign: 'right', minWidth: 180 }}>
-        <div style={{ color: pctColor, fontWeight: 800 }}>{Math.round(pct)}%</div>
+      <div style={{ textAlign: "right" }}>
+        <div style={{ color: pctColor, fontWeight: 800 }}>
+          {Math.round(pct)}%
+        </div>
 
-        <div style={{ display: 'flex', gap: 6, marginTop: 8 }}>
+        <div style={{ display: "flex", gap: 6, marginTop: 8 }}>
           <motion.button
-            onClick={() => onMark(record?._id, 'present')}
-            whileTap={{ scale: 0.96 }}
-            style={buttonStyle('rgba(52,211,153,0.4)', '0 10px 30px rgba(52,211,153,0.25)')}
+            onClick={() => onMark(attendance?._id, "present", false, item)}
+            style={buttonStyle("rgba(52,211,153,0.4)")}
           >
             Present
           </motion.button>
 
           <motion.button
-            onClick={() => onMark(record?._id, 'absent')}
-            whileTap={{ scale: 0.96 }}
-            style={buttonStyle('rgba(248,113,113,0.4)', '0 10px 30px rgba(248,113,113,0.25)')}
+            onClick={() => onMark(attendance?._id, "absent", false, item)}
+            style={buttonStyle("rgba(248,113,113,0.4)")}
           >
             Absent
           </motion.button>
 
           <motion.button
-            onClick={() => onMark(record?._id, 'cancelled', true)}
-            whileTap={{ scale: 0.96 }}
-            style={buttonStyle('rgba(148,163,184,0.35)', '0 10px 30px rgba(148,163,184,0.2)')}
+            onClick={() => onMark(attendance?._id, "cancelled", true, item)}
+            style={buttonStyle("rgba(148,163,184,0.35)")}
           >
             Cancelled
           </motion.button>
         </div>
-
-        {status && (
-          <div style={{ marginTop: 6, fontSize: 12 }}>
-            Marked {status}
-          </div>
-        )}
       </div>
     </motion.div>
   );

@@ -65,72 +65,70 @@ export default function Today() {
   }, []);
 
   /**
-   * 🔑 Find exact attendance record
+   * 🔑 Find exact attendance record for TODAY + subject + startTime
    */
-  const attendanceFor = (cls) => {
-    return attendance.find(
+  const attendanceFor = (cls) =>
+    attendance.find(
       (a) =>
         a.subjectCode === cls.subjectCode &&
         a.startTime === cls.startTime &&
         dayjs(a.date).isSame(dayjs(), "day")
     );
-  };
 
   /**
-   * 🔑 Update by attendance ID
+   * 🔑 CREATE or UPDATE attendance safely
    */
-const mark = async (attendanceId, status, askNote = false, item) => {
-  if (!attendanceId) {
-    await api.post('/attendance', {
-      subjectCode: item.subjectCode,
-      status,
-      startTime: item.startTime
-    });
-    return fetchAll(true);
-  }
+  const mark = async (attendanceId, status, askNote = false, item) => {
+    // First-time mark → CREATE
+    if (!attendanceId) {
+      await api.post("/attendance", {
+        subjectCode: item.subjectCode,
+        status,
+        startTime: item.startTime
+      });
+      return fetchAll(true);
+    }
 
-  if (askNote) {
-    const rec = attendance.find((a) => a._id === attendanceId);
-    setNoteModal({ open: true, attendance: rec });
-    return;
-  }
+    // Update with note
+    if (askNote) {
+      const rec = attendance.find((a) => a._id === attendanceId);
+      setNoteModal({ open: true, attendance: rec });
+      return;
+    }
 
-  await api.patch(`/attendance/${attendanceId}`, { status });
-  await fetchAll(true);
-};
-
-
+    // Normal update
+    await api.patch(`/attendance/${attendanceId}`, { status });
+    await fetchAll(true);
+  };
 
   const submitNote = async (note) => {
     await api.patch(`/attendance/${noteModal.attendance._id}`, {
       status: "cancelled",
       note
     });
-
     setNoteModal({ open: false, attendance: null });
     await fetchAll(true);
   };
 
   const scheduleWithPct = (today.all || []).map((c) => {
     const s = subjectStats.find((p) => p.subjectCode === c.subjectCode);
-    const rec = attendanceFor(c);
-    return { ...c, percentage: s?.percentage ?? 100, attendance: rec };
+    return {
+      ...c,
+      percentage: s?.percentage ?? 100,
+      attendance: attendanceFor(c)
+    };
   });
 
   return (
     <div className="layout">
-      <motion.h2
-        initial={{ y: 10, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ duration: 0.3 }}
-      >
+      <motion.h2 initial={{ y: 10, opacity: 0 }} animate={{ y: 0, opacity: 1 }}>
         Today · {today.day}
       </motion.h2>
 
       <div className="grid">
         {scheduleWithPct.map((item, idx) => (
           <motion.div
-            key={`${item._id}-${item.startTime}-${idx}`}
+            key={`${item.subjectCode}-${item.startTime}-${idx}`}
             initial={{ y: 20, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             transition={{ delay: idx * 0.05 }}
@@ -142,10 +140,6 @@ const mark = async (attendanceId, status, askNote = false, item) => {
             />
           </motion.div>
         ))}
-
-        {scheduleWithPct.length === 0 && (
-          <div className="card glow-card">No classes today 🎉</div>
-        )}
       </div>
 
       <NavBar />
@@ -158,51 +152,17 @@ const mark = async (attendanceId, status, askNote = false, item) => {
         <form
           onSubmit={(e) => {
             e.preventDefault();
-            const note = e.target.note.value;
-            submitNote(note);
+            submitNote(e.target.note.value);
           }}
         >
           <textarea
             name="note"
             rows={3}
-            style={{
-              width: "100%",
-              background: "#0b1220",
-              color: "var(--text)",
-              padding: 10,
-              borderRadius: 10,
-              border: "1px solid rgba(255,255,255,0.06)"
-            }}
+            style={{ width: "100%" }}
             placeholder="Reason (optional)"
           />
-
-          <div
-            style={{
-              marginTop: 12,
-              display: "flex",
-              justifyContent: "flex-end",
-              gap: 8
-            }}
-          >
-            <button
-              type="button"
-              onClick={() =>
-                setNoteModal({ open: false, attendance: null })
-              }
-            >
-              Cancel
-            </button>
-
-            <button
-              type="submit"
-              style={{
-                background: "var(--accent)",
-                color: "#0b1220",
-                fontWeight: 700
-              }}
-            >
-              Save
-            </button>
+          <div style={{ marginTop: 12, textAlign: "right" }}>
+            <button type="submit">Save</button>
           </div>
         </form>
       </Modal>
