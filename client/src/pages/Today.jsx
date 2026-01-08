@@ -79,16 +79,27 @@ export default function Today() {
   /**
    * 🔑 Update by attendance ID
    */
-  const mark = async (attendanceId, status, askNote = false) => {
-    if (askNote) {
-      const rec = attendance.find((a) => a._id === attendanceId);
-      setNoteModal({ open: true, attendance: rec });
-      return;
-    }
+const mark = async (attendanceId, status, askNote = false, item) => {
+  if (!attendanceId) {
+    await api.post('/attendance', {
+      subjectCode: item.subjectCode,
+      status,
+      startTime: item.startTime
+    });
+    return fetchAll(true);
+  }
 
-    await api.patch(`/attendance/${attendanceId}`, { status });
-    await fetchAll(true);
-  };
+  if (askNote) {
+    const rec = attendance.find((a) => a._id === attendanceId);
+    setNoteModal({ open: true, attendance: rec });
+    return;
+  }
+
+  await api.patch(`/attendance/${attendanceId}`, { status });
+  await fetchAll(true);
+};
+
+
 
   const submitNote = async (note) => {
     await api.patch(`/attendance/${noteModal.attendance._id}`, {
