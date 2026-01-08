@@ -43,14 +43,18 @@ export default function Timetable() {
     refresh(true);
   }, []);
 
-  const weekStart = dayjs().startOf("week").add(1, "day");
+const weekStart = dayjs().startOf("week").add(1, "day");
 
-  const grid = useMemo(() => {
-    return days.map((day, idx) => {
-      const classes = schedule.filter((s) => s.day === day);
-      return { day, date: weekStart.add(idx, "day"), classes };
-    });
-  }, [schedule, weekStart]);
+const grid = useMemo(() => {
+  return days.map((day, idx) => {
+    const classes = schedule.filter((s) => s.day === day);
+    return {
+      day,
+      date: dayjs(weekStart).add(idx, "day"), // ✅ FIX
+      classes
+    };
+  });
+}, [schedule, weekStart]);
 
   // 🔑 Find the EXACT attendance record
   const attendanceFor = (cls, date) => {
