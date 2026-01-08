@@ -15,9 +15,6 @@ export default function Timetable() {
   const [attendance, setAttendance] = useState([]);
   const [selected, setSelected] = useState(null);
 
-  // -------------------------
-  // Fetch data
-  // -------------------------
   const refresh = async (background = false) => {
     const cacheKey = "timetable_page";
 
@@ -35,11 +32,7 @@ export default function Timetable() {
       api.get("/attendance")
     ]);
 
-    const payload = {
-      schedule: s.data,
-      attendance: a.data
-    };
-
+    const payload = { schedule: s.data, attendance: a.data };
     setSchedule(payload.schedule);
     setAttendance(payload.attendance);
     setCached(cacheKey, payload);
@@ -50,64 +43,58 @@ export default function Timetable() {
     refresh(true);
   }, []);
 
-  // -------------------------
-  // Week calculation (SAFE)
-  // -------------------------
-  const weekStart = dayjs().startOf("week").add(1, "day"); // Monday
+const weekStart = dayjs().startOf("week").add(1, "day");
 
-  const grid = useMemo(() => {
-    return days.map((day, idx) => {
-      const classes = schedule.filter((s) => s.day === day);
-      return {
-        day,
-        date: dayjs(weekStart).add(idx, "day"), // CLONE (no mutation)
-        classes
-      };
-    });
-  }, [schedule, weekStart]);
+const grid = useMemo(() => {
+  return days.map((day, idx) => {
+    const classes = schedule.filter((s) => s.day === day);
+    return {
+      day,
+      date: dayjs(weekStart).add(idx, "day"), // ✅ FIX
+      classes
+    };
+  });
+}, [schedule, weekStart]);
 
-  // -------------------------
-  // 🔑 ATTENDANCE LOOKUP MAP
-  // -------------------------
-  const attendanceMap = useMemo(() => {
-    const map = new Map();
-    attendance.forEach((a) => {
-      const key = `${a.subjectCode}|${a.startTime}|${dayjs(a.date).format(
-        "YYYY-MM-DD"
-      )}`;
-      map.set(key, a);
-    });
-    return map;
-  }, [attendance]);
-
-  // -------------------------
-  // 🔑 EXACT MATCH (NO find())
-  // -------------------------
+  // 🔑 Find the EXACT attendance record
   const attendanceFor = (cls, date) => {
-    const key = `${cls.subjectCode}|${cls.startTime}|${dayjs(date).format(
-      "YYYY-MM-DD"
-    )}`;
-    return attendanceMap.get(key);
+    return attendance.find(
+      (a) =>
+        a.subjectCode === cls.subjectCode &&
+        a.startTime === cls.startTime &&
+        dayjs(a.date).isSame(date, "day")
+    );
   };
 
-  // -------------------------
-  // Update attendance
-  // -------------------------
-  const mark = async (attendanceId, status) => {
-    if (!attendanceId) return;
-    await api.patch(`/attendance/${attendanceId}`, { status });
-    setSelected(null);
-    await refresh(true);
-  };
+  // 🔑 Update by attendance ID (NO UPSERT)
+const mark = async (status) => {
+  // Case 1: update existing record
+  if (selected.attendance) {
+    await api.patch(
+      `/attendance/${selected.attendance._id}`,
+      { status }
+    );
+  } 
+  // Case 2: first-time mark → create
+  else {
+    await api.post("/attendance", {
+      subjectCode: selected.cls.subjectCode,
+      status,
+      date: selected.date,
+      startTime: selected.cls.startTime
+    });
+  }
 
-  // -------------------------
-  // UI helpers
-  // -------------------------
+  setSelected(null);
+  await refresh(true);
+};
+
+
   const colorFor = (status) => {
     if (status === "present") return "var(--success)";
     if (status === "absent") return "var(--danger)";
     if (status === "cancelled")
-      return "repeating-linear-gradient(45deg,#475569,#475569 6px,#1f2937 6px,#1f2937 12px)";
+      return "repeating-linear-gradient(45deg, #475569, #475569 6px, #1f2937 6px, #1f2937 12px)";
     return "#1f2937";
   };
 
@@ -117,7 +104,7 @@ export default function Timetable() {
 
       <div
         className="grid"
-        style={{ gridTemplateColumns: "repeat(auto-fit,minmax(220px,1fr))" }}
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}
       >
         {grid.map((col) => (
           <div key={col.day} className="card">
@@ -130,10 +117,11 @@ export default function Timetable() {
 
               return (
                 <div
-                  key={`${cls._id}-${col.date}`}
+                  key={cls._id + col.date}
                   onClick={() =>
                     setSelected({
                       cls,
+                      date: col.date,
                       attendance: rec
                     })
                   }
@@ -142,7 +130,7 @@ export default function Timetable() {
                     borderRadius: 12,
                     background: colorFor(rec?.status),
                     marginBottom: 8,
-                    cursor: rec ? "pointer" : "default"
+                    cursor: "pointer"
                   }}
                 >
                   <div style={{ fontWeight: 700 }}>{cls.subjectCode}</div>
@@ -175,53 +163,36 @@ export default function Timetable() {
       <NavBar />
 
       <Modal
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        title={`Mark ${selected?.cls?.subjectCode || ""}`}
+  open={!!selected}
+  onClose={() => setSelected(null)}
+  title={`Mark ${selected?.cls.subjectCode || ""}`}
+>
+  {selected && (
+    <div style={{ display: "flex", gap: 8 }}>
+      <button
+        onClick={() => mark("present")}
+        style={{ background: "var(--success)", color: "#0b1220", flex: 1 }}
       >
-        {selected?.attendance && (
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              onClick={() =>
-                mark(selected.attendance._id, "present")
-              }
-              style={{
-                background: "var(--success)",
-                color: "#0b1220",
-                flex: 1
-              }}
-            >
-              Present
-            </button>
+        Present
+      </button>
 
-            <button
-              onClick={() =>
-                mark(selected.attendance._id, "absent")
-              }
-              style={{
-                background: "var(--danger)",
-                color: "#0b1220",
-                flex: 1
-              }}
-            >
-              Absent
-            </button>
+      <button
+        onClick={() => mark("absent")}
+        style={{ background: "var(--danger)", color: "#0b1220", flex: 1 }}
+      >
+        Absent
+      </button>
 
-            <button
-              onClick={() =>
-                mark(selected.attendance._id, "cancelled")
-              }
-              style={{
-                background: "var(--muted)",
-                color: "#0b1220",
-                flex: 1
-              }}
-            >
-              Cancelled
-            </button>
-          </div>
-        )}
-      </Modal>
+      <button
+        onClick={() => mark("cancelled")}
+        style={{ background: "var(--muted)", color: "#0b1220", flex: 1 }}
+      >
+        Cancelled
+      </button>
+    </div>
+  )}
+</Modal>
+
     </div>
   );
 }
