@@ -63,11 +63,28 @@ export default function Timetable() {
   };
 
   // 🔑 Update by attendance ID (NO UPSERT)
-  const mark = async (attendanceId, status) => {
-    await api.patch(`/attendance/${attendanceId}`, { status });
-    setSelected(null);
-    await refresh(true);
-  };
+const mark = async (status) => {
+  // Case 1: update existing record
+  if (selected.attendance) {
+    await api.patch(
+      `/attendance/${selected.attendance._id}`,
+      { status }
+    );
+  } 
+  // Case 2: first-time mark → create
+  else {
+    await api.post("/attendance", {
+      subjectCode: selected.cls.subjectCode,
+      status,
+      date: selected.date,
+      startTime: selected.cls.startTime
+    });
+  }
+
+  setSelected(null);
+  await refresh(true);
+};
+
 
   const colorFor = (status) => {
     if (status === "present") return "var(--success)";
@@ -142,53 +159,36 @@ export default function Timetable() {
       <NavBar />
 
       <Modal
-        open={!!selected}
-        onClose={() => setSelected(null)}
-        title={`Mark ${selected?.cls.subjectCode || ""}`}
+  open={!!selected}
+  onClose={() => setSelected(null)}
+  title={`Mark ${selected?.cls.subjectCode || ""}`}
+>
+  {selected && (
+    <div style={{ display: "flex", gap: 8 }}>
+      <button
+        onClick={() => mark("present")}
+        style={{ background: "var(--success)", color: "#0b1220", flex: 1 }}
       >
-        {selected?.attendance && (
-          <div style={{ display: "flex", gap: 8 }}>
-            <button
-              onClick={() =>
-                mark(selected.attendance._id, "present")
-              }
-              style={{
-                background: "var(--success)",
-                color: "#0b1220",
-                flex: 1
-              }}
-            >
-              Present
-            </button>
+        Present
+      </button>
 
-            <button
-              onClick={() =>
-                mark(selected.attendance._id, "absent")
-              }
-              style={{
-                background: "var(--danger)",
-                color: "#0b1220",
-                flex: 1
-              }}
-            >
-              Absent
-            </button>
+      <button
+        onClick={() => mark("absent")}
+        style={{ background: "var(--danger)", color: "#0b1220", flex: 1 }}
+      >
+        Absent
+      </button>
 
-            <button
-              onClick={() =>
-                mark(selected.attendance._id, "cancelled")
-              }
-              style={{
-                background: "var(--muted)",
-                color: "#0b1220",
-                flex: 1
-              }}
-            >
-              Cancelled
-            </button>
-          </div>
-        )}
-      </Modal>
+      <button
+        onClick={() => mark("cancelled")}
+        style={{ background: "var(--muted)", color: "#0b1220", flex: 1 }}
+      >
+        Cancelled
+      </button>
+    </div>
+  )}
+</Modal>
+
     </div>
   );
 }
